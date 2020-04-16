@@ -105,6 +105,9 @@ Network::IoResult SslSocket::doRead(Buffer::Instance& read_buffer) {
     }
   }
 
+  ENVOY_CONN_LOG(trace, "handshake done, draining error queue.", callbacks_->connection());
+  drainErrorQueue();
+
   bool keep_reading = true;
   bool end_stream = false;
   PostIoAction action = PostIoAction::KeepOpen;
@@ -124,6 +127,7 @@ Network::IoResult SslSocket::doRead(Buffer::Instance& read_buffer) {
       if (result.error_.has_value()) {
         keep_reading = false;
         int err = SSL_get_error(ssl_, result.error_.value());
+	ENVOY_CONN_LOG(trace, "Error during ssl_read: {}", callbacks_->connection(), err);
         switch (err) {
         case SSL_ERROR_WANT_READ:
           break;
