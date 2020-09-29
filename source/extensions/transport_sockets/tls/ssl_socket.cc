@@ -76,6 +76,9 @@ SslSocket::ReadResult SslSocket::sslReadIntoSlice(Buffer::RawSlice& slice) {
   uint8_t* mem = static_cast<uint8_t*>(slice.mem_);
   size_t remaining = slice.len_;
   while (remaining > 0) {
+    // the error queue must be empty before the i/o operation is attempted
+    ERR_clear_error();
+
     int rc = SSL_read(ssl_, mem, remaining);
     ENVOY_CONN_LOG(trace, "ssl read returns: {}", callbacks_->connection(), rc);
     if (rc > 0) {
@@ -177,6 +180,8 @@ void SslSocket::onPrivateKeyMethodComplete() {
 
 PostIoAction SslSocket::doHandshake() {
   ASSERT(state_ != SocketState::HandshakeComplete && state_ != SocketState::ShutdownSent);
+  // the error queue must be empty before the i/o operation is attempted
+  ERR_clear_error();
   int rc = SSL_do_handshake(ssl_);
   if (rc == 1) {
     ENVOY_CONN_LOG(debug, "handshake complete", callbacks_->connection());
@@ -258,6 +263,9 @@ Network::IoResult SslSocket::doWrite(Buffer::Instance& write_buffer, bool end_st
 
   uint64_t total_bytes_written = 0;
   while (bytes_to_write > 0) {
+    // the error queue must be empty before the i/o operation is attempted 
+    ERR_clear_error();
+
     // TODO(mattklein123): As it relates to our fairness efforts, we might want to limit the number
     // of iterations of this loop, either by pure iterations, bytes written, etc.
 

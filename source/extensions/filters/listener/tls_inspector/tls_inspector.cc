@@ -175,7 +175,12 @@ ParseState Filter::onRead() {
     const uint8_t* data = buf_ + read_;
     const size_t len = result.rc_ - read_;
     read_ = result.rc_;
-    return parseClientHello(data, len);
+    const auto to_ret = parseClientHello(data, len);
+    // callbacks we use in SSL_do_handshake() populate OpenSSL's thread-local error queue.
+    // We rely on the error state of the handshake to determine this filter's state.
+    // At this point we processed handshake errors and can clear the error queue.
+    ERR_clear_error();
+    return to_ret;
   }
   return ParseState::Continue;
 }
